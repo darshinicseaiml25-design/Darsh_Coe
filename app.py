@@ -1,68 +1,98 @@
 import streamlit as st
 from PIL import Image
 from io import BytesIO
+import numpy as np
 
-# Set page config for a modern look
+# --- Page config ---
 st.set_page_config(
-    page_title="Image to PDF Scanner",
-    page_icon="📄",
+    page_title="📄 Smart Image to PDF Scanner",
+    page_icon="🖤",
     layout="centered",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="expanded"
 )
 
-# Custom CSS for a modern UI
-st.markdown(
-    """
+# --- Custom CSS for modern UI ---
+st.markdown("""
     <style>
     body {
-        background-color: #f0f2f6;
+        background-color: #f5f7fa;
+        font-family: 'Segoe UI', sans-serif;
     }
     .stButton>button {
         background-color: #4CAF50;
         color: white;
         font-size: 16px;
         height: 50px;
-        width: 200px;
-        border-radius: 10px;
+        width: 250px;
+        border-radius: 12px;
+        border: none;
+        transition: 0.3s;
     }
     .stButton>button:hover {
         background-color: #45a049;
         color: white;
     }
+    .css-1aumxhk {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
     </style>
-    """,
-    unsafe_allow_html=True
+""", unsafe_allow_html=True)
+
+# --- Header ---
+st.image("https://cdn-icons-png.flaticon.com/512/833/833314.png", width=80)
+st.title("📄 Smart Image to PDF Scanner")
+st.markdown("Upload images, convert them to **black & white**, and download as a **PDF** — just like Adobe Scan!")
+
+# --- File uploader ---
+uploaded_files = st.file_uploader(
+    "Upload image(s)... (PNG, JPG, JPEG)", type=["png", "jpg", "jpeg"], accept_multiple_files=True
 )
 
-st.title("📄 Modern Image to PDF Scanner")
-st.subheader("Upload an image, convert it to black & white, and download as PDF!")
+def convert_to_grayscale(img):
+    """Convert image to grayscale."""
+    return img.convert("L")
 
-# File uploader
-uploaded_file = st.file_uploader("Choose an image...", type=["png", "jpg", "jpeg"])
+def create_pdf(images):
+    """Convert list of PIL images to a single PDF in memory."""
+    pdf_bytes = BytesIO()
+    if len(images) == 1:
+        images[0].save(pdf_bytes, format="PDF")
+    else:
+        images[0].save(pdf_bytes, save_all=True, append_images=images[1:], format="PDF")
+    pdf_bytes.seek(0)
+    return pdf_bytes
 
-if uploaded_file:
-    # Display original image
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Original Image", use_column_width=True)
+if uploaded_files:
+    st.markdown("### Preview Uploaded Images:")
+    grayscale_images = []
 
-    if st.button("Convert to Grayscale PDF"):
-        # Convert to grayscale
-        grayscale_image = image.convert("L")
+    for i, uploaded_file in enumerate(uploaded_files):
+        img = Image.open(uploaded_file)
+        st.image(img, caption=f"Original Image {i+1}", use_column_width=True)
 
-        # Save to PDF in memory
-        pdf_bytes = BytesIO()
-        grayscale_image.save(pdf_bytes, format="PDF")
-        pdf_bytes.seek(0)
+    if st.button("🖤 Convert to Grayscale & Download PDF"):
+        for uploaded_file in uploaded_files:
+            img = Image.open(uploaded_file)
+            gray_img = convert_to_grayscale(img)
+            grayscale_images.append(gray_img)
 
-        # Display grayscale image
-        st.image(grayscale_image, caption="Grayscale Preview", use_column_width=True)
+        pdf_bytes = create_pdf(grayscale_images)
 
-        # Provide download button
+        # Show preview of first page
+        st.markdown("### Grayscale Preview (First Page)")
+        st.image(grayscale_images[0], use_column_width=True)
+
+        # Download button
         st.download_button(
             label="📥 Download PDF",
             data=pdf_bytes,
             file_name="scanned_document.pdf",
             mime="application/pdf",
         )
+        st.success("✅ Your images have been converted to a grayscale PDF!")
 
-        st.success("Your image has been converted to a grayscale PDF!")
+# --- Footer with placeholder image ---
+st.markdown("---")
+st.markdown("Made with ❤️ using Streamlit")
+st.image("https://cdn-icons-png.flaticon.com/512/833/833314.png", width=50)
